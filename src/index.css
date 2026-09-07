@@ -1,0 +1,77 @@
+@import '@xyflow/react/dist/style.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+/* Custom scrollbar for engineering tool sidebar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* React Flow custom styling */
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  background-color: #64748b !important;
+  border: 2px solid #ffffff !important;
+  transition: all 0.15s ease;
+}
+
+.react-flow__handle:hover {
+  width: 10px !important;
+  height: 10px !important;
+  background-color: #4f46e5 !important;
+}
+
+.react-flow__edge-path {
+  stroke: #94a3b8;
+  stroke-width: 2;
+  transition: stroke 0.2s ease;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #4f46e5;
+  stroke-width: 2.5;
+}
+
+.react-flow__edge.warning .react-flow__edge-path {
+  stroke: #f59e0b;
+}
+
+.react-flow__edge.critical .react-flow__edge-path {
+  stroke: #f43f5e;
+}
+
+.react-flow__edge.invalid .react-flow__edge-path {
+  stroke: #ef4444 !important;
+  stroke-width: 2.5 !important;
+  stroke-dasharray: 6, 6 !important;
+  animation: invalidPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes invalidPulse {
+  from { stroke: #ef4444; }
+  to { stroke: #b91c1c; }
+}
