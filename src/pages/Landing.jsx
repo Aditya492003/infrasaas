@@ -15,6 +15,8 @@ import {
   HardDrive
 } from 'lucide-react';
 
+import logoImg from '../assets/Gemini_Generated_Image_vfxl2kvfxl2kvfxl.png';
+
 export const Landing = ({ onNavigateSimulator, onNavigateNewProject }) => {
   const scrollToDemo = () => {
     document.getElementById('architecture-preview')?.scrollIntoView({ behavior: 'smooth' });
@@ -25,10 +27,8 @@ export const Landing = ({ onNavigateSimulator, onNavigateNewProject }) => {
       {/* Minimal Navigation Bar */}
       <header className="h-16 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-30 px-6 sm:px-12 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-            IS
-          </div>
-          <span className="font-bold text-base text-slate-900 tracking-tight">InfraSim</span>
+          <img src={logoImg} alt="InfraLab Logo" className="w-8 h-8 object-contain rounded-md shadow-xs" />
+          <span className="font-bold text-base text-slate-900 tracking-tight">InfraLab</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export const Landing = ({ onNavigateSimulator, onNavigateNewProject }) => {
 
       {/* Minimal Footer */}
       <footer className="py-6 border-t border-slate-200 text-center text-xs text-slate-500">
-        <p>© InfraSim — Visual Cloud Architecture and Deployment Simulator</p>
+        <p>© InfraLab — Interactive Cloud Infrastructure Simulator & AI Architecture Advisor</p>
       </footer>
     </div>
   );

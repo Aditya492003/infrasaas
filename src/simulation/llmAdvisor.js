@@ -1,14 +1,9 @@
-/**
- * True LLM AI Architecture Advisor Engine
- * Takes visual graph JSON + simulation outputs (RPS, bottlenecks, latency, costs)
- * and generates deep architectural reasoning using Gemini, OpenRouter, Ollama, or Local Synthesis.
- */
-
 export async function requestLlmArchitectureAnalysis({
   nodes = [],
   edges = [],
   workload = {},
   simulationResult = {},
+  manifestInspection = null,
   llmConfig = { provider: 'auto', apiKey: '', endpoint: '' }
 }) {
   const nodeSummary = nodes.map(n => ({
@@ -30,16 +25,18 @@ export async function requestLlmArchitectureAnalysis({
     systemLatencyMs: simulationResult?.avgLatencyMs || 0,
     totalMonthlyCostUsd: simulationResult?.totalMonthlyCostUsd || 0,
     systemErrorRatePct: simulationResult?.errorRatePct || 0,
+    flaggedDependencyLibraries: manifestInspection?.flags || [],
     topologyGraph: nodeSummary
   };
 
   const systemMessage = `You are a Senior Principal Cloud Architect & Reliability Engineer. 
-Analyze the provided cloud infrastructure graph JSON, workload simulation results, bottlenecks, and monthly cost.
-Provide a clear, highly technical, and actionable architectural critique with 4 sections:
+Analyze the provided cloud infrastructure graph JSON, workload simulation results, bottlenecks, monthly cost, and detected project dependency manifest flags.
+Provide a clear, highly technical, and caveated architectural critique with 5 sections:
 1. Executive Assessment & Reliability Rating (Score 0-100%)
 2. Critical Bottlenecks & Single Points of Failure (SPOFs)
 3. Performance & Caching Optimization Strategy
-4. Estimated Cost & Scaling Efficiency Advice.`;
+4. Estimated Cost & Scaling Efficiency Advice
+5. Manifest Dependency Sizing Guidance (nuanced memory advice for flagged packages like PyTorch, Puppeteer, Sharp, Pandas, explaining dataset/batch dependencies).`;
 
   // 1. Google Gemini API Key support
   if (llmConfig.provider === 'gemini' && llmConfig.apiKey) {
@@ -92,6 +89,7 @@ Provide a clear, highly technical, and actionable architectural critique with 4 
   const cost = simulationResult?.totalMonthlyCostUsd || 0;
   const latency = simulationResult?.avgLatencyMs || 0;
   const errorRate = simulationResult?.errorRatePct || 0;
+  const flags = manifestInspection?.flags || [];
 
   let reasoningText = `### 🧠 LLM Architecture Advisor Analysis\n\n`;
 
@@ -129,10 +127,17 @@ Provide a clear, highly technical, and actionable architectural critique with 4 
 
   reasoningText += `\n#### 4. Cost & Scaling Efficiency Advice\n`;
   reasoningText += `- 💰 **Total Monthly Spend**: **$${cost.toLocaleString()}/month** ($${(cost / 730).toFixed(2)}/hour).\n`;
-  if (cost > 1500 && computeNodes.length > 5) {
-    reasoningText += `- ⚡ **Rightsizing Opportunity**: Compute instances are provisioned above typical baseline usage. Consider implementing AWS Auto Scaling Groups to scale down during low-traffic windows and save up to ~35% on monthly cloud spend.\n`;
+
+  // 5. Dependency Manifest Sizing Guidance
+  reasoningText += `\n#### 5. Manifest Dependency & Memory Sizing Guidance\n`;
+  if (flags.length > 0) {
+    flags.forEach(flag => {
+      reasoningText += `- ⚠️ **Flagged Package**: \`${flag.name}\` (${flag.category})\n`;
+      reasoningText += `  - *Contextual Guidance*: ${flag.note}\n`;
+    });
+    reasoningText += `\n> *Note: Memory requirements vary based on model parameter count, dataset scale, and concurrency. Always profile runtime memory before production deployment.*\n`;
   } else {
-    reasoningText += `- 🎯 **Cost Optimization**: Infrastructure budget is well aligned with processing requirements.\n`;
+    reasoningText += `- ✅ **No Memory-Intensive Heavy Libraries Flagged**: Standard web runtime memory footprint applies.\n`;
   }
 
   return {

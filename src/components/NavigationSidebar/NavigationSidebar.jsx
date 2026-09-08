@@ -140,11 +140,9 @@ export const NavigationSidebar = ({
         {/* Drawer Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-              IS
-            </div>
+            <img src={logoImg} alt="InfraLab Logo" className="w-7 h-7 object-contain rounded-md shadow-xs" />
             <div>
-              <h2 className="text-xs font-bold text-slate-900 tracking-tight">InfraSim Workspace</h2>
+              <h2 className="text-xs font-bold text-slate-900 tracking-tight">InfraLab Workspace</h2>
               <div className="text-[10px] text-slate-500">Navigation & App Hub</div>
             </div>
           </div>

@@ -15,6 +15,7 @@ import {
   Play
 } from 'lucide-react';
 import { generateArchitectureFromPrompt, BLUEPRINT_TEMPLATES } from '../data/aiArchitect';
+import logoImg from '../assets/Gemini_Generated_Image_vfxl2kvfxl2kvfxl.png';
 
 export const NewProject = ({ onSelectProject, onNavigateHome }) => {
   const [projectName, setProjectName] = useState('My Cloud Architecture');
@@ -88,10 +89,8 @@ export const NewProject = ({ onSelectProject, onNavigateHome }) => {
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-              IS
-            </div>
-            <span className="font-bold text-sm text-slate-900 tracking-tight">InfraSim</span>
+            <img src={logoImg} alt="InfraLab Logo" className="w-7 h-7 object-contain rounded-md shadow-xs" />
+            <span className="font-bold text-sm text-slate-900 tracking-tight">InfraLab</span>
           </div>
         </div>
 

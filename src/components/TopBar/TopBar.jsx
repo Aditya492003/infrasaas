@@ -16,6 +16,7 @@ import {
   Globe
 } from 'lucide-react';
 import { AWS_REGIONS, syncLiveAwsPrices } from '../../simulation/livePricingApi';
+import logoImg from '../../assets/Gemini_Generated_Image_vfxl2kvfxl2kvfxl.png';
 
 export const TopBar = ({
   architectureName,
@@ -81,10 +82,8 @@ export const TopBar = ({
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-            IS
-          </div>
-          <span className="font-bold text-sm text-slate-900 tracking-tight">InfraSaaS</span>
+          <img src={logoImg} alt="InfraLab Logo" className="w-7 h-7 object-contain rounded-md shadow-xs" />
+          <span className="font-bold text-sm text-slate-900 tracking-tight">InfraLab</span>
         </div>
 
         <span className="text-slate-300">/</span>

@@ -757,7 +757,10 @@ const SimulatorWorkspace = ({ onNavigateLanding, onNavigateNewProject, projectDa
             {/* Center Architecture Canvas with Requirements & Results overlays */}
             <div className="flex-1 h-full relative overflow-hidden">
               {/* Collapsible Requirements Parser Overlay */}
-              <RequirementsPanel onAddSuggestedNodes={handleAddSuggestedNodes} />
+              <RequirementsPanel
+                onAddSuggestedNodes={handleAddSuggestedNodes}
+                onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
+              />
 
               {/* Floating Real-time Architecture Advisor / Anti-pattern Linter */}
               <ArchitectureAdvisor
