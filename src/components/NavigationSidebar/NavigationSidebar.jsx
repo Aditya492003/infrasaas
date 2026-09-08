@@ -16,6 +16,7 @@ import {
   Plus
 } from 'lucide-react';
 import { BLUEPRINT_TEMPLATES } from '../../data/aiArchitect';
+import logoImg from '../../assets/logo.png';
 
 export const NavigationSidebar = ({ 
   isOpen, 

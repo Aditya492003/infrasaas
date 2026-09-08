@@ -15,7 +15,7 @@ import {
   HardDrive
 } from 'lucide-react';
 
-import logoImg from '../assets/Gemini_Generated_Image_vfxl2kvfxl2kvfxl.png';
+import logoImg from '../assets/logo.png';
 
 export const Landing = ({ onNavigateSimulator, onNavigateNewProject }) => {
   const scrollToDemo = () => {

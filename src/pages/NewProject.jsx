@@ -15,7 +15,7 @@ import {
   Play
 } from 'lucide-react';
 import { generateArchitectureFromPrompt, BLUEPRINT_TEMPLATES } from '../data/aiArchitect';
-import logoImg from '../assets/Gemini_Generated_Image_vfxl2kvfxl2kvfxl.png';
+import logoImg from '../assets/logo.png';
 
 export const NewProject = ({ onSelectProject, onNavigateHome }) => {
   const [projectName, setProjectName] = useState('My Cloud Architecture');
