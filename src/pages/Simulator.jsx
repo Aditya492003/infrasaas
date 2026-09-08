@@ -12,6 +12,8 @@ import { BeginnerWorkspace } from '../components/BeginnerMode/BeginnerWorkspace'
 import { NavigationSidebar } from '../components/NavigationSidebar/NavigationSidebar';
 import { TutorialModal } from '../components/Tutorial/TutorialModal';
 import { ArchitectureAdvisor } from '../components/ArchitectureAdvisor/ArchitectureAdvisor';
+import { IacExportModal } from '../components/IacExportModal/IacExportModal';
+import { LoadTestModal } from '../components/LoadTestModal/LoadTestModal';
 import { analyzeArchitecture } from '../simulation/architectureAdvisor';
 import { DEFAULT_NODES, DEFAULT_EDGES } from '../data/defaultArchitecture';
 import { getComponentDef } from '../data/infrastructureTypes';
@@ -31,7 +33,7 @@ const SimulatorWorkspace = ({ onNavigateLanding, onNavigateNewProject, projectDa
     requestSize: 100, // KB
   });
 
-  // Simulation state
+  // Simulation & Modal states
   const [simulationResult, setSimulationResult] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [hasSimulated, setHasSimulated] = useState(false);
@@ -39,6 +41,9 @@ const SimulatorWorkspace = ({ onNavigateLanding, onNavigateNewProject, projectDa
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [isNavSidebarOpen, setIsNavSidebarOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isIacModalOpen, setIsIacModalOpen] = useState(false);
+  const [isLoadTestModalOpen, setIsLoadTestModalOpen] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState('us-east-1');
   const [mode, setMode] = useState('architect'); // 'architect' | 'beginner'
 
   // Derive selected node object
@@ -717,10 +722,14 @@ const SimulatorWorkspace = ({ onNavigateLanding, onNavigateNewProject, projectDa
         onZoomOut={() => zoomOut({ duration: 200 })}
         onResetArchitecture={handleResetArchitecture}
         onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
+        onOpenIacExport={() => setIsIacModalOpen(true)}
+        onOpenLoadTest={() => setIsLoadTestModalOpen(true)}
         onNavigateLanding={onNavigateLanding}
         onNavigateNewProject={onNavigateNewProject}
         onOpenNavSidebar={() => setIsNavSidebarOpen(true)}
         onOpenTutorial={() => setIsTutorialOpen(true)}
+        selectedRegion={selectedRegion}
+        setSelectedRegion={setSelectedRegion}
         mode={mode}
         setMode={setMode}
       />
@@ -804,8 +813,29 @@ const SimulatorWorkspace = ({ onNavigateLanding, onNavigateNewProject, projectDa
       <AIAnalysisPanel
         isOpen={isAiAssistantOpen}
         onClose={() => setIsAiAssistantOpen(false)}
+        nodes={nodes}
+        edges={edges}
+        workload={workload}
         simulationResult={simulationResult}
         onRemediate={handleRemediate}
+      />
+
+      {/* Deployable Infrastructure as Code (IaC) Export Modal */}
+      <IacExportModal
+        isOpen={isIacModalOpen}
+        onClose={() => setIsIacModalOpen(false)}
+        nodes={nodes}
+        edges={edges}
+        architectureName={architectureName}
+      />
+
+      {/* Load Test Generator & Benchmark Validation Modal */}
+      <LoadTestModal
+        isOpen={isLoadTestModalOpen}
+        onClose={() => setIsLoadTestModalOpen(false)}
+        nodes={nodes}
+        workload={workload}
+        simulationResult={simulationResult}
       />
 
       {/* Navigation App Drawer (Recent Creations, Pricing, Blueprints, Guides) */}

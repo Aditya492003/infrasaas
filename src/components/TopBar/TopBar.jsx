@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Play, 
-  RotateCcw, 
-  RotateCw, 
   ZoomIn, 
   ZoomOut, 
   Maximize2, 
@@ -10,11 +8,14 @@ import {
   Check, 
   Sparkles,
   ArrowLeft,
-  Share2,
   RefreshCw,
   Menu,
-  GraduationCap
+  GraduationCap,
+  FileCode,
+  Zap,
+  Globe
 } from 'lucide-react';
+import { AWS_REGIONS, syncLiveAwsPrices } from '../../simulation/livePricingApi';
 
 export const TopBar = ({
   architectureName,
@@ -28,19 +29,32 @@ export const TopBar = ({
   onZoomOut,
   onResetArchitecture,
   onOpenAiAssistant,
+  onOpenIacExport,
+  onOpenLoadTest,
   onNavigateLanding,
   onNavigateNewProject,
   onOpenNavSidebar,
   onOpenTutorial,
+  selectedRegion = 'us-east-1',
+  setSelectedRegion,
   mode = 'architect',
   setMode
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSyncingPrices, setIsSyncingPrices] = useState(false);
 
   const handleSave = () => {
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleRegionChange = async (e) => {
+    const rId = e.target.value;
+    setSelectedRegion(rId);
+    setIsSyncingPrices(true);
+    await syncLiveAwsPrices(rId);
+    setTimeout(() => setIsSyncingPrices(false), 500);
   };
 
   return (
@@ -70,7 +84,7 @@ export const TopBar = ({
           <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
             IS
           </div>
-          <span className="font-bold text-sm text-slate-900 tracking-tight">InfraSim</span>
+          <span className="font-bold text-sm text-slate-900 tracking-tight">InfraSaaS</span>
         </div>
 
         <span className="text-slate-300">/</span>
@@ -118,8 +132,25 @@ export const TopBar = ({
         )}
       </div>
 
-      {/* Center: Mode Switcher & Canvas Controls */}
+      {/* Center: Mode Switcher, AWS Region & Canvas Controls */}
       <div className="flex items-center gap-3">
+        {/* Live AWS Region Pricing Selector */}
+        <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-md px-2 py-1 text-xs text-slate-700">
+          <Globe className={`w-3.5 h-3.5 text-indigo-600 ${isSyncingPrices ? 'animate-spin' : ''}`} />
+          <select
+            value={selectedRegion}
+            onChange={handleRegionChange}
+            className="bg-transparent font-medium text-xs focus:outline-none cursor-pointer"
+            title="Switch AWS Regional Pricing"
+          >
+            {AWS_REGIONS.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.flag} {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Beginner vs Architect Mode Toggle */}
         <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shadow-inner">
           <button
@@ -131,7 +162,7 @@ export const TopBar = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🛠️ Architect Mode</span>
+            <span>🛠️ Architect</span>
           </button>
           <button
             type="button"
@@ -142,12 +173,11 @@ export const TopBar = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🐣 Beginner Mode</span>
-            <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded font-bold">Simple</span>
+            <span>🐣 Beginner</span>
           </button>
         </div>
 
-        {/* Canvas Zoom & Fit controls (when in Architect mode) */}
+        {/* Canvas Zoom & Fit controls */}
         {mode === 'architect' && (
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md p-1">
             <button
@@ -180,7 +210,7 @@ export const TopBar = ({
               type="button"
               onClick={onResetArchitecture}
               className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-white rounded transition-all"
-              title="Reset to Default Architecture"
+              title="Reset Architecture"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
@@ -188,54 +218,36 @@ export const TopBar = ({
         )}
       </div>
 
-      {/* Right: Tutorial, AI Assistant, New Project, Save, and Primary Simulate Button */}
+      {/* Right: Actions (Export IaC, k6 Load Test, AI Advisor, Simulate) */}
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={onOpenTutorial}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 transition-colors"
-          title="Open Beginner Cloud Architecture Tutorial"
+          onClick={onOpenIacExport}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200 transition-colors"
+          title="Export Terraform HCL / CloudFormation"
         >
-          <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Tutorial</span>
+          <FileCode className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Export IaC</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenLoadTest}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 transition-colors"
+          title="Generate k6/Locust scripts & Validate benchmark"
+        >
+          <Zap className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Load Test</span>
         </button>
 
         <button
           type="button"
           onClick={onOpenAiAssistant}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200 transition-colors"
-          title="Open AI Architecture Assistant"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 transition-colors"
+          title="Ask LLM Architecture Advisor"
         >
           <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Ask AI Why</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onNavigateNewProject}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:bg-slate-100 rounded border border-slate-200 transition-colors"
-          title="Create New Project (Blank or AI)"
-        >
-          <span className="text-indigo-600 font-bold">+</span>
-          <span>New Project</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSave}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded border border-slate-200 transition-colors"
-        >
-          {saveSuccess ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="text-emerald-700">Saved</span>
-            </>
-          ) : (
-            <>
-              <Save className="w-3.5 h-3.5 text-slate-500" />
-              <span>Save</span>
-            </>
-          )}
+          <span>LLM Advisor</span>
         </button>
 
         <button

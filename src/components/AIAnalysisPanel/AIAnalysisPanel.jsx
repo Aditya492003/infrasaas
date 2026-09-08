@@ -5,74 +5,61 @@ import {
   Send, 
   Bot, 
   User, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  AlertTriangle,
-  Lightbulb
+  ArrowUpRight,
+  Settings,
+  Cpu
 } from 'lucide-react';
+import { requestLlmArchitectureAnalysis } from '../../simulation/llmAdvisor';
 
 export const AIAnalysisPanel = ({
   isOpen,
   onClose,
+  nodes = [],
+  edges = [],
+  workload = {},
   simulationResult,
   onRemediate
 }) => {
   const [messages, setMessages] = useState([]);
   const [inputQuestion, setInputQuestion] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [provider, setProvider] = useState('auto'); // 'auto' | 'gemini' | 'ollama'
+  const [apiKey, setApiKey] = useState('');
+  const [isLlmLoading, setIsLlmLoading] = useState(false);
+  const [activeProviderName, setActiveProviderName] = useState('Built-in AI Synthesizer');
 
-  // Generate dynamic contextual analysis based on the latest simulation state
+  // Trigger LLM Architecture Reasoning when panel opens or simulation results change
   useEffect(() => {
     if (!isOpen) return;
 
-    if (!simulationResult) {
-      setMessages([
-        {
-          sender: 'ai',
-          text: "Hello! I am the InfraSim Architecture Assistant. Run a simulation using the bottom workload controls, and I will analyze your graph for saturation points, queue build-ups, and architectural bottlenecks."
-        }
-      ]);
-      return;
-    }
+    let isMounted = true;
+    setIsLlmLoading(true);
 
-    const { bottleneck, systemMetrics, status } = simulationResult;
-
-    let responseText = '';
-    let actionItems = [];
-
-    if (bottleneck) {
-      responseText = `${bottleneck.nodeName} is currently the primary bottleneck. Its ${bottleneck.metricLabel} has reached ${bottleneck.metricValue} (${bottleneck.utilization}% load). When this node saturates, downstream requests queue up, driving average latency to ${systemMetrics.averageLatency}ms (P95: ${systemMetrics.p95Latency}ms).\n\nAdding more compute or scaling other tiers alone will not improve system throughput because ${bottleneck.nodeName} is the hard constraint.`;
-      
-      if (bottleneck.nodeType === 'postgresql' || bottleneck.nodeType === 'mysql') {
-        actionItems = [
-          { id: 'upgrade_db', label: 'Upgrade Database to db.r5.large', action: 'upgrade_db' },
-          { id: 'add_redis', label: 'Introduce Redis Query Cache', action: 'add_redis' }
-        ];
-      } else if (['server', 'vm', 'container'].includes(bottleneck.nodeType)) {
-        actionItems = [
-          { id: 'scale_servers', label: 'Scale Server Replicas (+2 instances)', action: 'scale_servers' },
-          { id: 'upgrade_server_type', label: 'Upgrade Server to t3.xlarge', action: 'upgrade_server_type' }
-        ];
-      } else {
-        actionItems = [
-          { id: 'scale_component', label: `Scale ${bottleneck.nodeName}`, action: 'scale_component' }
-        ];
+    requestLlmArchitectureAnalysis({
+      nodes,
+      edges,
+      workload,
+      simulationResult,
+      llmConfig: { provider, apiKey }
+    }).then(res => {
+      if (!isMounted) return;
+      setIsLlmLoading(false);
+      if (res && res.reasoning) {
+        setActiveProviderName(res.provider || 'AI Architecture Engine');
+        setMessages([
+          {
+            sender: 'ai',
+            text: res.reasoning
+          }
+        ]);
       }
-    } else {
-      responseText = `Your current architecture is performing healthily under the configured load (${systemMetrics.throughput?.toLocaleString()} req/s). Peak tier utilization is only ${systemMetrics.highestUtilization}%, and latency remains nominal at ${systemMetrics.averageLatency}ms.`;
-    }
+    }).catch(err => {
+      if (!isMounted) return;
+      setIsLlmLoading(false);
+    });
 
-    setMessages([
-      {
-        sender: 'user',
-        text: "Why is my architecture behaving this way?"
-      },
-      {
-        sender: 'ai',
-        text: responseText,
-        actions: actionItems
-      }
-    ]);
-  }, [isOpen, simulationResult]);
+    return () => { isMounted = false; };
+  }, [isOpen, simulationResult, provider, apiKey]);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -82,19 +69,19 @@ export const AIAnalysisPanel = ({
     setInputQuestion('');
 
     const newMsgs = [...messages, { sender: 'user', text: userText }];
+    setMessages(newMsgs);
 
-    // Deterministic architecture assistant response
-    let aiResponse = '';
     const q = userText.toLowerCase();
+    let aiResponse = '';
 
     if (q.includes('redis') || q.includes('cache')) {
-      aiResponse = "Adding Redis in front of your database intercepts repetitive read queries. In InfraSim, introducing Redis typically reduces database query volume by ~70%, preventing DB connection pool exhaustion.";
+      aiResponse = "Adding Redis in front of your database intercepts repetitive read queries. In InfraSaaS, introducing Redis typically reduces database query volume by ~70%, preventing DB connection pool exhaustion.";
     } else if (q.includes('scale') || q.includes('server')) {
       aiResponse = "Horizontal server scaling distributes incoming HTTP requests across more workers. However, if your database or message queue is already saturated, scaling servers will actually increase database contention.";
     } else if (q.includes('latency')) {
-      aiResponse = `Current average latency is ${simulationResult?.systemMetrics?.averageLatency || 45}ms. Latency follows a hockey-stick curve once any tier crosses 85% utilization due to network queueing.`;
+      aiResponse = `Current average latency is ${simulationResult?.systemMetrics?.averageLatency || 45}ms. Latency follows a non-linear queueing curve once any tier crosses 85% utilization.`;
     } else {
-      aiResponse = `Based on your current graph: ${simulationResult?.bottleneck ? `${simulationResult.bottleneck.nodeName} is limiting capacity.` : 'The system has adequate headroom.'} Try adjusting the workload sliders to observe where degradation begins.`;
+      aiResponse = `Based on your current topology graph and workload: ${simulationResult?.bottleneck ? `${simulationResult.bottleneck.nodeName} is limiting capacity.` : 'The system has adequate headroom.'} Try adjusting the workload sliders to observe where degradation begins.`;
     }
 
     setMessages([...newMsgs, { sender: 'ai', text: aiResponse }]);
@@ -105,27 +92,83 @@ export const AIAnalysisPanel = ({
   return (
     <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col select-none animate-in slide-in-from-right duration-200">
       {/* Header */}
-      <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+      <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center">
+          <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center text-white">
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h2 className="text-xs font-bold text-slate-900 leading-tight">Architecture Assistant</h2>
-            <div className="text-[10px] text-slate-500">Autonomous Infrastructure Diagnosis</div>
+            <h2 className="text-xs font-bold leading-tight flex items-center gap-1.5">
+              <span>LLM Architecture Advisor</span>
+              <span className="text-[9px] bg-indigo-400/20 text-indigo-300 border border-indigo-400/30 px-1.5 py-0.2 rounded font-mono">
+                {activeProviderName}
+              </span>
+            </h2>
+            <div className="text-[10px] text-slate-400">Deep Graph & Simulation Reasoning</div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-1 text-slate-400 hover:text-white rounded transition-colors"
+            title="Configure LLM Provider (Free Gemini Key / Ollama)"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-slate-400 hover:text-white rounded transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Settings Dropdown Panel */}
+      {showSettings && (
+        <div className="p-3 bg-slate-800 text-white border-b border-slate-700 text-xs space-y-2">
+          <div className="font-bold flex items-center gap-1 text-indigo-300">
+            <Cpu className="w-3.5 h-3.5" />
+            <span>LLM Provider Setup (100% Free)</span>
+          </div>
+          <div>
+            <label className="block text-[11px] text-slate-300 mb-1">Select Engine:</label>
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white focus:outline-none"
+            >
+              <option value="auto">Built-in AI Synthesizer (Free, Local)</option>
+              <option value="gemini">Google Gemini 1.5 Flash (Free API Key)</option>
+              <option value="ollama">Localhost Ollama (http://localhost:11434)</option>
+            </select>
+          </div>
+          {provider === 'gemini' && (
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Gemini API Key:</label>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white font-mono"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Message Chat Feed */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        {isLlmLoading && (
+          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-800 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600 animate-spin" />
+            <span>LLM is reasoning about system topology and bottlenecks...</span>
+          </div>
+        )}
+
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -142,33 +185,13 @@ export const AIAnalysisPanel = ({
             </div>
 
             <div
-              className={`p-3 rounded-lg max-w-[85%] leading-relaxed ${
+              className={`p-3 rounded-lg max-w-[90%] leading-relaxed ${
                 msg.sender === 'user'
                   ? 'bg-slate-900 text-white text-right'
-                  : 'bg-slate-50 text-slate-800 border border-slate-200 whitespace-pre-line'
+                  : 'bg-slate-50 text-slate-800 border border-slate-200 whitespace-pre-line font-sans'
               }`}
             >
               {msg.text}
-
-              {/* Action Buttons */}
-              {msg.actions && msg.actions.length > 0 && (
-                <div className="mt-3 pt-2.5 border-t border-slate-200/80 space-y-1.5 text-left">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Recommended Fixes:
-                  </div>
-                  {msg.actions.map(act => (
-                    <button
-                      key={act.id}
-                      type="button"
-                      onClick={() => onRemediate(act.action)}
-                      className="w-full text-left text-[11px] font-medium text-slate-800 hover:text-indigo-600 bg-white hover:bg-slate-100 border border-slate-200 rounded p-1.5 transition-colors flex items-center justify-between"
-                    >
-                      <span>{act.label}</span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         ))}
