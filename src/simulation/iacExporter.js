@@ -407,6 +407,142 @@ resource "aws_sqs_queue" "${resId}" {
         break;
       }
 
+      case 'waf': {
+        mainTf += `
+# Web Application Firewall (WAF): ${data.name || node.id}
+resource "aws_wafv2_web_acl" "${resId}" {
+  name        = "${resId}-waf"
+  description = "WAF protection rule group for ${data.name || node.id}"
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${resId}-waf-metrics"
+    sampled_requests_enabled   = true
+  }
+}
+`;
+        break;
+      }
+
+      case 'kms': {
+        mainTf += `
+# KMS Encryption Key: ${data.name || node.id}
+resource "aws_kms_key" "${resId}" {
+  description             = "KMS Master Encryption Key for ${data.name || node.id}"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_alias" "${resId}_alias" {
+  name          = "alias/${resId}-key"
+  target_key_id = aws_kms_key.${resId}.key_id
+}
+`;
+        break;
+      }
+
+      case 'secrets_manager': {
+        mainTf += `
+# AWS Secrets Manager Vault: ${data.name || node.id}
+resource "aws_secretsmanager_secret" "${resId}" {
+  name                    = "${projectName}-${resId}-vault"
+  kms_key_id              = aws_kms_key.${resId < nodes.length ? sanitizeName(nodes[0].data?.name || 'app') : 'app'}.key_id
+  recovery_window_in_days = 7
+}
+`;
+        break;
+      }
+
+      case 'iam_identity': {
+        mainTf += `
+# Cognito Identity User Pool: ${data.name || node.id}
+resource "aws_cognito_user_pool" "${resId}" {
+  name = "${projectName}-${resId}-pool"
+
+  password_policy {
+    minimum_length    = 12
+    require_lowercase = true
+    require_numbers   = true
+    require_symbols   = true
+    require_uppercase = true
+  }
+}
+`;
+        break;
+      }
+
+      case 'opensearch': {
+        mainTf += `
+# OpenSearch Search Cluster: ${data.name || node.id}
+resource "aws_opensearch_domain" "${resId}" {
+  domain_name    = "${resId}-domain"
+  engine_version = "OpenSearch_2.11"
+
+  cluster_config {
+    instance_type  = "or1.medium.search"
+    instance_count = ${config.dataNodes || 3}
+  }
+
+  ebs_options {
+    ebs_enabled = true
+    volume_size = ${config.storageGb || 200}
+  }
+}
+`;
+        break;
+      }
+
+      case 'kinesis_stream': {
+        mainTf += `
+# Kinesis Event Stream: ${data.name || node.id}
+resource "aws_kinesis_stream" "${resId}" {
+  name             = "${resId}-stream"
+  shard_count      = ${config.shards || 4}
+  retention_period = ${config.retentionHours || 24}
+}
+`;
+        break;
+      }
+
+      case 'ai_inference': {
+        mainTf += `
+# SageMaker AI ML Inference Model: ${data.name || node.id}
+resource "aws_sagemaker_endpoint_configuration" "${resId}_config" {
+  name = "${resId}-endpoint-config"
+
+  production_variants {
+    variant_name           = "variant-1"
+    model_name             = "llama3-7b-instruct"
+    initial_instance_count = ${config.instanceCount || 1}
+    instance_type          = "${config.instanceType || 'ml.g5.xlarge'}"
+  }
+}
+`;
+        break;
+      }
+
+      case 'cloudwatch_metrics': {
+        mainTf += `
+# CloudWatch Metric Alarm: ${data.name || node.id}
+resource "aws_cloudwatch_metric_alarm" "${resId}_cpu_alarm" {
+  alarm_name          = "${projectName}-high-cpu-alarm"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 85
+}
+`;
+        break;
+      }
+
       default:
         break;
     }

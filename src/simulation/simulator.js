@@ -85,6 +85,140 @@ export function runSimulation({ nodes = [], edges = [], workload = {} }) {
     };
   });
 
+  // 7. Messaging Nodes
+  messagingNodes.forEach(node => {
+    const config = node.data?.config || {};
+    const retention = config.messageRetention || 4;
+    const msgQueueDepth = Math.round(effectiveRps * 2.5);
+    const utilization = Math.min(100, Math.round((effectiveRps / 8000) * 100));
+    const status = getStatusFromUtilization(utilization);
+
+    nodeMetrics[node.id] = {
+      rps: effectiveRps,
+      queueDepth: msgQueueDepth,
+      utilization,
+      status,
+      metric1: { label: 'In-Flight Messages', value: msgQueueDepth.toLocaleString() },
+      metric2: { label: 'Retention', value: `${retention} hrs` }
+    };
+  });
+
+  // 8. Security Nodes (WAF, KMS, Secrets Manager, IAM)
+  const securityNodes = nodes.filter(n => ['waf', 'kms', 'secrets_manager', 'iam_identity'].includes(n.data?.type));
+  securityNodes.forEach(node => {
+    const type = node.data?.type;
+    const config = node.data?.config || {};
+    let utilization = 15;
+    let label1 = 'Inspected RPS';
+    let val1 = `${effectiveRps.toLocaleString()}/s`;
+    let label2 = 'Rule Group';
+    let val2 = config.ruleGroup || 'OWASP Top 10';
+
+    if (type === 'waf') {
+      const cap = config.requestLimit || 20000;
+      utilization = Math.min(100, Math.round((effectiveRps / cap) * 100));
+    } else if (type === 'kms') {
+      label1 = 'Crypto Ops';
+      val1 = `${Math.round(effectiveRps * 0.4)} ops/s`;
+      label2 = 'Rotation';
+      val2 = `${config.rotationYears || 1} Year`;
+      utilization = Math.min(100, Math.round(((effectiveRps * 0.4) / 5000) * 100));
+    } else if (type === 'secrets_manager') {
+      label1 = 'Secret Vaults';
+      val1 = `${config.secretCount || 10} Secrets`;
+      label2 = 'Rotation Days';
+      val2 = `${config.rotationDays || 30} Days`;
+      utilization = 10;
+    } else if (type === 'iam_identity') {
+      label1 = 'Monthly Active Users';
+      val1 = `${(config.monthlyActiveUsers || 50000).toLocaleString()}`;
+      label2 = 'Auth Mode';
+      val2 = config.mfaRequired ? 'OIDC + MFA' : 'OIDC Standard';
+      utilization = Math.min(100, Math.round((effectiveUsers / 50000) * 100));
+    }
+
+    const status = getStatusFromUtilization(utilization);
+    nodeMetrics[node.id] = {
+      rps: effectiveRps,
+      utilization,
+      status,
+      metric1: { label: label1, value: val1 },
+      metric2: { label: label2, value: val2 }
+    };
+  });
+
+  // 9. Analytics & AI Nodes (OpenSearch, Kinesis Stream, AI Inference)
+  const analyticsNodes = nodes.filter(n => ['opensearch', 'kinesis_stream', 'ai_inference'].includes(n.data?.type));
+  analyticsNodes.forEach(node => {
+    const type = node.data?.type;
+    const config = node.data?.config || {};
+    let utilization = 25;
+    let label1 = 'Ingest Rate';
+    let val1 = `${effectiveRps.toLocaleString()} events/s`;
+    let label2 = 'Cluster Size';
+    let val2 = `${config.dataNodes || 3} Nodes`;
+
+    if (type === 'opensearch') {
+      const cap = (config.dataNodes || 3) * 1500;
+      utilization = Math.min(100, Math.round((effectiveRps / cap) * 100));
+      label1 = 'Query & Index RPS';
+      val1 = `${Math.round(effectiveRps * 0.3)} qps`;
+    } else if (type === 'kinesis_stream') {
+      const shardCap = (config.shards || 4) * 1000;
+      utilization = Math.min(100, Math.round((effectiveRps / shardCap) * 100));
+      label1 = 'Stream Shards';
+      val1 = `${config.shards || 4} Shards`;
+      label2 = 'Retention';
+      val2 = `${config.retentionHours || 24} hrs`;
+    } else if (type === 'ai_inference') {
+      const instanceCount = config.instanceCount || 1;
+      const inferenceCap = instanceCount * 120; // 120 req/s per GPU
+      utilization = Math.min(100, Math.round((effectiveRps / inferenceCap) * 100));
+      label1 = 'LLM Tokens / s';
+      val1 = `${(effectiveRps * 45).toLocaleString()} tok/s`;
+      label2 = 'GPU Count';
+      val2 = `${instanceCount} x ${config.accelerator || 'A10G'}`;
+    }
+
+    const status = getStatusFromUtilization(utilization);
+    nodeMetrics[node.id] = {
+      rps: effectiveRps,
+      utilization,
+      status,
+      metric1: { label: label1, value: val1 },
+      metric2: { label: label2, value: val2 }
+    };
+  });
+
+  // 10. Observability & Monitoring Nodes (CloudWatch, Log Aggregator)
+  const monitoringNodes = nodes.filter(n => ['cloudwatch_metrics', 'log_aggregator'].includes(n.data?.type));
+  monitoringNodes.forEach(node => {
+    const type = node.data?.type;
+    const config = node.data?.config || {};
+    let utilization = 15;
+    let label1 = 'Tracked Metrics';
+    let val1 = `${config.metricsCount || 100} Metrics`;
+    let label2 = 'Alarms Active';
+    let val2 = `${config.alarmCount || 15} Alarms`;
+
+    if (type === 'log_aggregator') {
+      label1 = 'Daily Log Volume';
+      val1 = `${config.dailyLogVolumeGb || 50} GB/day`;
+      label2 = 'Retention';
+      val2 = `${config.retentionDays || 30} Days`;
+      utilization = Math.min(100, Math.round(((config.dailyLogVolumeGb || 50) / 200) * 100));
+    }
+
+    const status = getStatusFromUtilization(utilization);
+    nodeMetrics[node.id] = {
+      rps: effectiveRps,
+      utilization,
+      status,
+      metric1: { label: label1, value: val1 },
+      metric2: { label: label2, value: val2 }
+    };
+  });
+
   // 4. Compute Nodes (Servers, VMs, Containers)
   const computeCount = Math.max(computeNodes.length, 1);
   const rpsPerCompute = Math.round(effectiveRps / computeCount);

@@ -234,6 +234,126 @@ export const COMPONENT_CATEGORIES = [
         }
       }
     ]
+  },
+  {
+    id: 'security',
+    name: 'SECURITY & COMPLIANCE',
+    items: [
+      {
+        type: 'waf',
+        name: 'WAF Firewall',
+        icon: 'ShieldCheck',
+        description: 'Web Application Firewall & DDoS protection',
+        category: 'security',
+        defaultConfig: {
+          ruleGroup: 'Managed OWASP Top 10',
+          requestLimit: 20000,
+          inspectionCapacity: '10 Gbps'
+        }
+      },
+      {
+        type: 'kms',
+        name: 'KMS Key Manager',
+        icon: 'KeyRound',
+        description: 'Envelope key management & encryption',
+        category: 'security',
+        defaultConfig: {
+          keyType: 'Symmetric KMS',
+          rotationYears: 1
+        }
+      },
+      {
+        type: 'secrets_manager',
+        name: 'Secrets Vault',
+        icon: 'Vault',
+        description: 'API key & password vault with auto-rotation',
+        category: 'security',
+        defaultConfig: {
+          secretCount: 10,
+          rotationDays: 30
+        }
+      },
+      {
+        type: 'iam_identity',
+        name: 'Identity Provider',
+        icon: 'UserCheck',
+        description: 'OAuth2/OIDC User Pool & IAM authentication',
+        category: 'security',
+        defaultConfig: {
+          monthlyActiveUsers: 50000,
+          mfaRequired: true
+        }
+      }
+    ]
+  },
+  {
+    id: 'analytics',
+    name: 'ANALYTICS & AI',
+    items: [
+      {
+        type: 'opensearch',
+        name: 'OpenSearch',
+        icon: 'Search',
+        description: 'Distributed search & log indexing cluster',
+        category: 'analytics',
+        defaultConfig: {
+          instanceType: 'or1.medium',
+          dataNodes: 3,
+          storageGb: 200
+        }
+      },
+      {
+        type: 'kinesis_stream',
+        name: 'Kinesis Stream',
+        icon: 'Activity',
+        description: 'High-velocity real-time event streaming',
+        category: 'analytics',
+        defaultConfig: {
+          shards: 4,
+          retentionHours: 24
+        }
+      },
+      {
+        type: 'ai_inference',
+        name: 'AI Model Endpoint',
+        icon: 'Bot',
+        description: 'GPU-accelerated LLM/ML model serving endpoint',
+        category: 'analytics',
+        defaultConfig: {
+          instanceType: 'ml.g5.xlarge',
+          accelerator: 'NVIDIA A10G',
+          instanceCount: 1
+        }
+      }
+    ]
+  },
+  {
+    id: 'monitoring',
+    name: 'OBSERVABILITY & LOGS',
+    items: [
+      {
+        type: 'cloudwatch_metrics',
+        name: 'Metrics & Alarms',
+        icon: 'BarChart3',
+        description: 'Time-series monitoring & anomaly alarms',
+        category: 'monitoring',
+        defaultConfig: {
+          metricsCount: 100,
+          alarmCount: 15
+        }
+      },
+      {
+        type: 'log_aggregator',
+        name: 'Log Aggregator',
+        icon: 'FileText',
+        description: 'Centralized log collector (Loki/Fluentd)',
+        category: 'monitoring',
+        defaultConfig: {
+          dailyLogVolumeGb: 50,
+          retentionDays: 30
+        }
+      }
+    ]
   }
 ];
 

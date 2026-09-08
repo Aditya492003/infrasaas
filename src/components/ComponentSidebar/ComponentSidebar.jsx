@@ -17,7 +17,15 @@ import {
   Radio, 
   Search,
   Plus,
-  Cpu
+  Cpu,
+  ShieldCheck,
+  KeyRound,
+  Vault,
+  UserCheck,
+  Activity,
+  Bot,
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import { COMPONENT_CATEGORIES } from '../../data/infrastructureTypes';
 
@@ -37,7 +45,16 @@ const ICON_MAP = {
   FolderTree,
   ListOrdered,
   Radio,
-  Cpu
+  Cpu,
+  ShieldCheck,
+  KeyRound,
+  Vault,
+  UserCheck,
+  Search,
+  Activity,
+  Bot,
+  BarChart3,
+  FileText
 };
 
 export const ComponentSidebar = ({ onAddComponent }) => {

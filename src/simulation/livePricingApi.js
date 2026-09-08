@@ -23,7 +23,7 @@ const BASELINE_AWS_PRICES = {
   'c5.xlarge': 0.17,
   'Standard_D2s_v3': 0.096,
 
-  // RDS Database Instances ($/hr)
+  // Database Instances ($/hr)
   'db.t3.small': 0.034,
   'db.t3.medium': 0.068,
   'db.r5.large': 0.24,
@@ -35,6 +35,10 @@ const BASELINE_AWS_PRICES = {
   'cache.t3.micro': 0.017,
   'cache.t3.medium': 0.068,
   'cache.r5.large': 0.228,
+
+  // OpenSearch & AI ML Endpoints ($/hr)
+  'or1.medium': 0.075,
+  'ml.g5.xlarge': 1.006,
 
   // Storage & Network rates
   's3_storage_per_gb_month': 0.023,
@@ -56,7 +60,6 @@ export async function syncLiveAwsPrices(regionId = 'us-east-1') {
   const regionObj = AWS_REGIONS.find(r => r.id === regionId) || AWS_REGIONS[0];
 
   try {
-    // Attempt fetching from public AWS price index or fallback endpoints
     const res = await fetch('https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/index.json', {
       method: 'GET',
       mode: 'cors',
@@ -71,7 +74,6 @@ export async function syncLiveAwsPrices(regionId = 'us-east-1') {
     // Fallback to local calculated regional multipliers
   }
 
-  // Multiply baseline rates by regional cost factor
   const updatedMap = {};
   Object.keys(BASELINE_AWS_PRICES).forEach(key => {
     updatedMap[key] = parseFloat((BASELINE_AWS_PRICES[key] * regionObj.multiplier).toFixed(4));
@@ -157,6 +159,49 @@ export function calculateNodeMonthlyCost(node, regionId = 'us-east-1') {
     case 'message_broker': {
       return Math.round(15 * multiplier);
     }
+
+    // Security & Compliance
+    case 'waf': {
+      return Math.round(5.00 * multiplier + 10);
+    }
+    case 'kms': {
+      return Math.round(1.00 * multiplier + 5);
+    }
+    case 'secrets_manager': {
+      const count = config.secretCount || 10;
+      return Math.round(count * 0.40 * multiplier);
+    }
+    case 'iam_identity': {
+      const mau = config.monthlyActiveUsers || 50000;
+      return Math.round((mau / 10000) * 15 * multiplier);
+    }
+
+    // Analytics & AI
+    case 'opensearch': {
+      const nodesCount = config.dataNodes || 3;
+      const hourlyRate = 0.075 * multiplier;
+      const storageCost = (config.storageGb || 200) * 0.10 * multiplier;
+      return Math.round(hourlyRate * nodesCount * HOURS_PER_MONTH + storageCost);
+    }
+    case 'kinesis_stream': {
+      const shards = config.shards || 4;
+      return Math.round(shards * 0.015 * HOURS_PER_MONTH * multiplier);
+    }
+    case 'ai_inference': {
+      const count = config.instanceCount || 1;
+      const hourlyRate = 1.006 * multiplier; // GPU instance
+      return Math.round(hourlyRate * count * HOURS_PER_MONTH);
+    }
+
+    // Observability & Monitoring
+    case 'cloudwatch_metrics': {
+      return Math.round(20 * multiplier);
+    }
+    case 'log_aggregator': {
+      const gbDay = config.dailyLogVolumeGb || 50;
+      return Math.round(gbDay * 30 * 0.50 * multiplier);
+    }
+
     default:
       return 25;
   }
