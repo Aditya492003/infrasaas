@@ -10,11 +10,18 @@ export const WorkloadControls = ({
   setLiveWhatIf
 }) => {
   const updateField = (field, value) => {
+    const num = Math.max(0, Number(value) || 0);
     setWorkload(prev => ({
       ...prev,
-      [field]: Number(value)
+      [field]: num
     }));
   };
+
+  // Dynamic max slider bounds to support custom high numbers
+  const maxUsers = Math.max(100000, Math.ceil(workload.concurrentUsers * 1.5));
+  const maxRps = Math.max(10000, Math.ceil(workload.requestsPerSecond * 1.5));
+  const maxTraffic = Math.max(10, Math.ceil(workload.trafficMultiplier * 1.5));
+  const maxPayload = Math.max(2048, Math.ceil(workload.requestSize * 1.5));
 
   return (
     <div className="h-20 bg-white border-t border-slate-200 px-6 flex items-center justify-between gap-6 z-20 flex-shrink-0 select-none shadow-sm">
@@ -43,7 +50,7 @@ export const WorkloadControls = ({
         </label>
       </div>
 
-      {/* Sliders Grid */}
+      {/* Sliders Grid with Custom Input Fields */}
       <div className="flex-1 max-w-4xl grid grid-cols-4 gap-6 items-center">
         {/* 1. Concurrent Users */}
         <div className="space-y-1">
@@ -52,25 +59,30 @@ export const WorkloadControls = ({
               <Users className="w-3 h-3 text-slate-400" />
               Users
             </span>
-            <span className="font-mono font-bold text-slate-800">
-              {workload.concurrentUsers >= 1000 
-                ? `${(workload.concurrentUsers / 1000).toFixed(0)}k` 
-                : workload.concurrentUsers}
-            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="1"
+                value={workload.concurrentUsers}
+                onChange={(e) => updateField('concurrentUsers', e.target.value)}
+                className="w-20 font-mono font-bold text-right text-indigo-700 bg-indigo-50/60 border border-indigo-200 rounded px-1.5 py-0.5 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                title="Type custom user count"
+              />
+            </div>
           </div>
           <input
             type="range"
-            min="1000"
-            max="100000"
-            step="1000"
+            min="100"
+            max={maxUsers}
+            step="500"
             value={workload.concurrentUsers}
             onChange={(e) => updateField('concurrentUsers', e.target.value)}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
-          <div className="flex justify-between text-[9px] text-slate-400">
-            <span>1K</span>
-            <span>50K</span>
-            <span>100K</span>
+          <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+            <span>100</span>
+            <span>{(maxUsers / 2 / 1000).toFixed(0)}K</span>
+            <span>{(maxUsers / 1000).toFixed(0)}K</span>
           </div>
         </div>
 
@@ -81,23 +93,31 @@ export const WorkloadControls = ({
               <Zap className="w-3 h-3 text-slate-400" />
               RPS
             </span>
-            <span className="font-mono font-bold text-slate-800">
-              {workload.requestsPerSecond.toLocaleString()} req/s
-            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="1"
+                value={workload.requestsPerSecond}
+                onChange={(e) => updateField('requestsPerSecond', e.target.value)}
+                className="w-16 font-mono font-bold text-right text-indigo-700 bg-indigo-50/60 border border-indigo-200 rounded px-1.5 py-0.5 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                title="Type custom RPS target"
+              />
+              <span className="text-[10px] text-slate-400 font-mono">/s</span>
+            </div>
           </div>
           <input
             type="range"
-            min="100"
-            max="10000"
-            step="100"
+            min="10"
+            max={maxRps}
+            step="50"
             value={workload.requestsPerSecond}
             onChange={(e) => updateField('requestsPerSecond', e.target.value)}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
-          <div className="flex justify-between text-[9px] text-slate-400">
-            <span>100</span>
-            <span>5,000</span>
-            <span>10,000</span>
+          <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+            <span>10</span>
+            <span>{(maxRps / 2).toLocaleString()}</span>
+            <span>{maxRps.toLocaleString()}</span>
           </div>
         </div>
 
@@ -108,23 +128,33 @@ export const WorkloadControls = ({
               <Gauge className="w-3 h-3 text-slate-400" />
               Traffic
             </span>
-            <span className="font-mono font-bold text-slate-800">
-              {workload.trafficMultiplier}×
-            </span>
+            <div className="flex items-center gap-0.5">
+              <input
+                type="number"
+                min="1"
+                max={maxTraffic}
+                step="1"
+                value={workload.trafficMultiplier}
+                onChange={(e) => updateField('trafficMultiplier', e.target.value)}
+                className="w-12 font-mono font-bold text-right text-indigo-700 bg-indigo-50/60 border border-indigo-200 rounded px-1.5 py-0.5 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                title="Type custom traffic multiplier"
+              />
+              <span className="text-[10px] font-bold text-slate-400">×</span>
+            </div>
           </div>
           <input
             type="range"
             min="1"
-            max="10"
+            max={maxTraffic}
             step="1"
             value={workload.trafficMultiplier}
             onChange={(e) => updateField('trafficMultiplier', e.target.value)}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
-          <div className="flex justify-between text-[9px] text-slate-400">
+          <div className="flex justify-between text-[9px] text-slate-400 font-mono">
             <span>1×</span>
-            <span>5×</span>
-            <span>10×</span>
+            <span>{(maxTraffic / 2).toFixed(0)}×</span>
+            <span>{maxTraffic}×</span>
           </div>
         </div>
 
@@ -135,25 +165,31 @@ export const WorkloadControls = ({
               <HardDrive className="w-3 h-3 text-slate-400" />
               Payload
             </span>
-            <span className="font-mono font-bold text-slate-800">
-              {workload.requestSize >= 1000 
-                ? `${(workload.requestSize / 1024).toFixed(1)} MB` 
-                : `${workload.requestSize} KB`}
-            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="1"
+                value={workload.requestSize}
+                onChange={(e) => updateField('requestSize', e.target.value)}
+                className="w-16 font-mono font-bold text-right text-indigo-700 bg-indigo-50/60 border border-indigo-200 rounded px-1.5 py-0.5 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                title="Type custom request payload in KB"
+              />
+              <span className="text-[10px] text-slate-400 font-mono">KB</span>
+            </div>
           </div>
           <input
             type="range"
             min="10"
-            max="2048"
-            step="20"
+            max={maxPayload}
+            step="10"
             value={workload.requestSize}
             onChange={(e) => updateField('requestSize', e.target.value)}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
-          <div className="flex justify-between text-[9px] text-slate-400">
+          <div className="flex justify-between text-[9px] text-slate-400 font-mono">
             <span>10 KB</span>
-            <span>1 MB</span>
-            <span>2 MB</span>
+            <span>{(maxPayload / 2 / 1024).toFixed(1)} MB</span>
+            <span>{(maxPayload / 1024).toFixed(1)} MB</span>
           </div>
         </div>
       </div>
